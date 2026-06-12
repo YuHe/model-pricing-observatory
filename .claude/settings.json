@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd backend && pytest*)",
+      "Bash(cd frontend && npx vitest*)",
+      "Bash(docker compose*)",
+      "Bash(cd backend && alembic*)",
+      "Bash(cd backend && uvicorn*)",
+      "Bash(cd frontend && npm*)",
+      "Bash(pip install*)",
+      "Bash(npm install*)",
+      "Bash(find*)",
+      "Bash(grep*)",
+      "Bash(ls*)",
+      "Bash(cat*)",
+      "Bash(curl*)"
+    ]
+  }
+}

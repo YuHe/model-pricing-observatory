@@ -1,0 +1,120 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pricing
+      POSTGRES_PASSWORD: pricing
+      POSTGRES_DB: pricing
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    networks:
+      - pricing_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pricing"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    expose:
+      - "6379"
+    networks:
+      - pricing_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    expose:
+      - "3722"
+    environment:
+      - POSTGRES_URL=postgresql+asyncpg://pricing:pricing@postgres:5432/pricing
+      - REDIS_URL=redis://redis:6379/0
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-change-me-in-production}
+      - DOMAIN=${DOMAIN:-price.ihope.cc}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pricing_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3722/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.tasks worker --loglevel=info
+    environment:
+      - POSTGRES_URL=postgresql+asyncpg://pricing:pricing@postgres:5432/pricing
+      - REDIS_URL=redis://redis:6379/0
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-change-me-in-production}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - pricing_net
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.tasks beat --loglevel=info
+    environment:
+      - POSTGRES_URL=postgresql+asyncpg://pricing:pricing@postgres:5432/pricing
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - pricing_net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-8194}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - pricing_net
+    restart: unless-stopped
+
+networks:
+  pricing_net:
+    driver: bridge
+
+volumes:
+  postgres_data:

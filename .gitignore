@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# Build
+.next/
+dist/
+build/
+
+# Docker volumes
+postgres_data/
+redis_data/
+
+# OS
+.DS_Store
