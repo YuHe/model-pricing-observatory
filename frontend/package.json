@@ -10,7 +10,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@next/swc-darwin-arm64": "^16.2.9",
     "clsx": "^2.1.0",
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",
