@@ -1,13 +1,14 @@
 from __future__ import annotations
 from typing import Optional
+from datetime import date
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from app.database import get_db
 from app.api.deps import require_admin
-from app.models.models import CrawlJob, AlertConfig, AlertLog
+from app.models.models import CrawlJob, AlertConfig, AlertLog, PriceSnapshot, SubscriptionSnapshot
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -127,3 +128,18 @@ async def list_alert_logs(db: AsyncSession = Depends(get_db)):
         return [{"id": str(l.id), "alert_config_id": str(l.alert_config_id) if l.alert_config_id else None, "job_id": str(l.job_id) if l.job_id else None, "sent_at": str(l.sent_at), "status": l.status} for l in logs]
     except Exception:
         return []
+
+
+@router.post("/trigger-crawl")
+async def trigger_crawl():
+    from app.tasks.sync import run_daily_sync
+    run_daily_sync.delay()
+    return {"ok": True, "message": "Crawl task queued"}
+
+
+@router.delete("/snapshots")
+async def delete_snapshots_by_date(target_date: date = Query(...), db: AsyncSession = Depends(get_db)):
+    price_result = await db.execute(delete(PriceSnapshot).where(PriceSnapshot.date == target_date))
+    sub_result = await db.execute(delete(SubscriptionSnapshot).where(SubscriptionSnapshot.date == target_date))
+    await db.commit()
+    return {"ok": True, "deleted_price_snapshots": price_result.rowcount, "deleted_subscription_snapshots": sub_result.rowcount}

@@ -5,6 +5,8 @@ export default function AdminPage() {
   const [key, setKey] = useState('')
   const [authed, setAuthed] = useState(false)
   const [jobs, setJobs] = useState<any[]>([])
+  const [deleteDate, setDeleteDate] = useState('')
+  const [msg, setMsg] = useState('')
 
   const login = () => {
     fetch('/api/v1/admin/jobs', { headers: { 'X-Admin-Key': key } })
@@ -18,6 +20,19 @@ export default function AdminPage() {
       .then(() => login())
   }
 
+  const triggerCrawl = () => {
+    fetch('/api/v1/admin/trigger-crawl', { method: 'POST', headers: { 'X-Admin-Key': key } })
+      .then(r => r.json())
+      .then(() => { setMsg('Crawl task queued'); setTimeout(() => setMsg(''), 3000) })
+  }
+
+  const deleteByDate = () => {
+    if (!deleteDate || !confirm(`Delete all snapshots for ${deleteDate}?`)) return
+    fetch(`/api/v1/admin/snapshots?target_date=${deleteDate}`, { method: 'DELETE', headers: { 'X-Admin-Key': key } })
+      .then(r => r.json())
+      .then(d => { setMsg(`Deleted ${d.deleted_price_snapshots} price + ${d.deleted_subscription_snapshots} subscription snapshots`); setTimeout(() => setMsg(''), 5000) })
+  }
+
   if (!authed) return (
     <div className="max-w-sm mx-auto mt-20 space-y-4">
       <h1 className="text-xl font-bold">Admin</h1>
@@ -27,8 +42,17 @@ export default function AdminPage() {
   )
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Admin - Crawl Jobs</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Admin</h1>
+      {msg && <div className="bg-green-900/30 border border-green-800 rounded px-3 py-2 text-sm text-green-300">{msg}</div>}
+      <div className="flex gap-4 items-end flex-wrap">
+        <button onClick={triggerCrawl} className="px-4 py-2 bg-blue-600 rounded font-medium text-sm hover:bg-blue-700">Trigger Crawl Now</button>
+        <div className="flex gap-2 items-end">
+          <input type="date" value={deleteDate} onChange={e => setDeleteDate(e.target.value)} className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm" />
+          <button onClick={deleteByDate} className="px-4 py-2 bg-red-600 rounded font-medium text-sm hover:bg-red-700">Delete Day</button>
+        </div>
+      </div>
+      <h2 className="text-lg font-semibold">Crawl Jobs</h2>
       <table className="w-full text-sm">
         <thead><tr className="border-b border-gray-800"><th className="text-left py-2">Source</th><th>Status</th><th>Models</th><th>Time</th><th></th></tr></thead>
         <tbody>

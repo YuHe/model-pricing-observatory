@@ -338,6 +338,8 @@ async def crawl_with_playwright(url: str, wait_selector: str, extract_fn):
 - Admin Key认证
 - 任务列表+状态+重试按钮
 - 告警配置管理 + 告警日志
+- **手动触发爬取按钮**：点击后立即触发一次全量爬取任务
+- **按天删除数据**：选择日期，删除该天所有 price_snapshot 和 subscription_snapshot 数据
 
 ---
 
