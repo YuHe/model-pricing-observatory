@@ -132,9 +132,23 @@ async def list_alert_logs(db: AsyncSession = Depends(get_db)):
 
 @router.post("/trigger-crawl")
 async def trigger_crawl():
-    from app.tasks.sync import run_daily_sync
-    run_daily_sync.delay()
+    from app.tasks.sync import run_daily_sync_tracked
+    run_daily_sync_tracked.delay()
     return {"ok": True, "message": "Crawl task queued"}
+
+
+@router.get("/crawl-progress")
+async def crawl_progress(db: AsyncSession = Depends(get_db)):
+    from datetime import datetime, timedelta
+    since = datetime.utcnow() - timedelta(hours=1)
+    result = await db.execute(
+        select(CrawlJob).where(CrawlJob.created_at >= since).order_by(CrawlJob.created_at.desc())
+    )
+    jobs = result.scalars().all()
+    items = []
+    for j in jobs:
+        items.append({"id": str(j.id), "source": j.source, "status": j.status, "models_synced": j.models_synced, "error_message": j.error_message, "stack_trace": j.stack_trace, "started_at": str(j.started_at) if j.started_at else None, "finished_at": str(j.finished_at) if j.finished_at else None})
+    return {"items": items}
 
 
 @router.delete("/snapshots")

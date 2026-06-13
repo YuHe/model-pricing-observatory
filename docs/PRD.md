@@ -339,7 +339,10 @@ async def crawl_with_playwright(url: str, wait_selector: str, extract_fn):
 - 任务列表+状态+重试按钮
 - 告警配置管理 + 告警日志
 - **手动触发爬取按钮**：点击后立即触发一次全量爬取任务
+- **爬取进度实时展示**：触发后轮询显示各爬虫执行状态（pending/running/success/failed），已完成数/总数进度条
+- **错误详情弹窗**：某爬虫失败时点击可弹窗查看完整报错信息和堆栈
 - **按天删除数据**：选择日期，删除该天所有 price_snapshot 和 subscription_snapshot 数据
+- 以上操作均需 Admin Key 认证
 
 ---
 

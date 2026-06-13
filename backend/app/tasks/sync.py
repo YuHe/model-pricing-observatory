@@ -5,11 +5,17 @@ from app.tasks.celery_app import celery_app
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=300)
 def run_daily_sync(self):
-    """Execute all crawlers in sequence: exchange_rate -> overseas -> china -> channels -> subscriptions -> clear cache."""
+    """Execute all crawlers in sequence."""
     try:
         asyncio.run(_run_all_crawlers())
     except Exception as exc:
         self.retry(exc=exc)
+
+
+@celery_app.task(bind=True, max_retries=0)
+def run_daily_sync_tracked(self):
+    """Same as run_daily_sync but no retry — for manual trigger with progress tracking."""
+    asyncio.run(_run_all_crawlers())
 
 
 async def _run_all_crawlers():
