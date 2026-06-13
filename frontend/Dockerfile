@@ -15,4 +15,6 @@ COPY nginx.conf /etc/nginx/http.d/default.conf
 
 EXPOSE 80
 
-CMD sh -c "node server.js & nginx -g 'daemon off;'"
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+CMD sh -c "node server.js & sleep 2 && nginx -g 'daemon off;'"
